@@ -1,8 +1,68 @@
+preprocessing:
+  target: HeartDisease
+  features:
+  - Age
+  - Sex
+  - ChestPainType
+  - RestingBP
+  - Cholesterol
+  - FastingBS
+  - RestingECG
+  - MaxHR
+  - ExerciseAngina
+  - Oldpeak
+  - ST_Slope
 train:
   TEST_SIZE: 0.3
   VALIDATE_SIZE: 0.2
   RANDOM_STATE: 2024
   CV: 5
   alpha: 0.1
-preprocessing:
-  target: price
+continuas:
+- Age
+- RestingBP
+- Cholesterol
+- MaxHR
+- Oldpeak
+discretas:
+- FastingBS
+categoricas:
+- Sex
+- ChestPainType
+- RestingECG
+- ExerciseAngina
+- ST_Slope
+optuna:
+  RandomForest:
+    n_estimators: 171
+    max_depth: 5
+    min_samples_split: 9
+  GradientBoosting:
+    n_estimators: 160
+    learning_rate: 0.019901859428064946
+    max_depth: 4
+  SVM:
+    C: 0.8681461891798855
+    kernel: linear
+    gamma: auto
+  KNN:
+    n_neighbors: 7
+    weights: distance
+    metric: manhattan
+optimization:
+  RandomForest:
+    n_estimators: 50
+    min_samples_split: 5
+    max_depth: null
+  GradientBoosting:
+    n_estimators: 50
+    max_depth: 3
+    learning_rate: 0.01
+  SVM:
+    kernel: linear
+    gamma: auto
+    C: 0.1
+  KNN:
+    weights: uniform
+    n_neighbors: 5
+    metric: manhattan

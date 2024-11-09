@@ -8,15 +8,21 @@ from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_val_
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, precision_score,f1_score, accuracy_score, recall_score
 from sklearn.base import is_classifier, is_regressor
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.svm import SVC
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.naive_bayes import GaussianNB
 import numpy as np
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
 
 models_Def = {
-    "LinearRegression": LinearRegression,
-    "RandomForest": RandomForestRegressor,
-    "GradientBoosting": GradientBoostingRegressor
+    "NaiveBayes": GaussianNB,
+    "RandomForest": RandomForestClassifier,
+    "GradientBoosting": GradientBoostingClassifier,
+    'SVM': SVC,
+    "KNN":KNeighborsClassifier
 }
 
 def splitValuesForModel(X,y, TEST_SIZE, VALIDATE_SIZE,RANDOM_STATE):
@@ -121,31 +127,64 @@ def gb_objective(trial, X_train, y_train, X_val, y_val, random_state):
     mse = mean_squared_error(y_val, preds)
     return mse
 
+def objective(trial, X_train, y_train, X_val, y_val, random_state, model_name):
+        model = createModel(model_name,{})
+        if model_name == 'RandomForest':
+            n_estimators = trial.suggest_int('n_estimators', 50, 200)
+            max_depth = trial.suggest_int('max_depth', 5, 30)
+            min_samples_split = trial.suggest_int('min_samples_split', 2, 10)
+            model.set_params(random_state=random_state,n_estimators=n_estimators, max_depth=max_depth, min_samples_split=min_samples_split)
+        elif model_name == 'GradientBoosting':
+            n_estimators = trial.suggest_int('n_estimators', 50, 200)
+            learning_rate = trial.suggest_float('learning_rate', 0.01, 0.2)
+            max_depth = trial.suggest_int('max_depth', 3, 7)
+            model.set_params(random_state=random_state,n_estimators=n_estimators, learning_rate=learning_rate, max_depth=max_depth)
+        elif model_name == 'SVM':
+            C = trial.suggest_float('C', 0.1, 1, log=True)  # Replaces suggest_loguniform
+            kernel = trial.suggest_categorical('kernel', ['linear', 'rbf', 'poly'])
+            gamma = trial.suggest_categorical('gamma', ['scale', 'auto'])
+            model.set_params(random_state=random_state,C=C, kernel=kernel, gamma=gamma)
+        elif model_name == 'KNN':
+            n_neighbors = trial.suggest_int('n_neighbors', 3, 7)
+            weights = trial.suggest_categorical('weights', ['uniform', 'distance'])
+            metric = trial.suggest_categorical('metric', ['euclidean', 'manhattan'])
+            model.set_params(n_neighbors=n_neighbors, weights=weights, metric=metric)
+
+        model.fit(X_train, y_train)
+        score = accuracy_score(y_val, model.predict(X_val))
+        return score
 
 
 def hyperparameter_search(model, param_grid, X_train,y_train, cv, search_type):
     if search_type == 'grid':
-        search = GridSearchCV(model, param_grid, cv=cv, scoring='r2', n_jobs=-1)
+        search = GridSearchCV(model, param_grid, cv=cv, scoring='accuracy', n_jobs=-1)
     else:
-        search = RandomizedSearchCV(model, param_grid, n_iter=10, cv=cv, scoring='r2', n_jobs=-1)
+        search = RandomizedSearchCV(model, param_grid, n_iter=10, cv=cv, scoring='accuracy', n_jobs=-1)
     
     search.fit(X_train, y_train)
     return search
 
 def chooseBestHiperparameters(X_train,y_train, cv, random_state):
     models_and_params = {
-        'RandomForest': (RandomForestRegressor(random_state=random_state), {
+        'RandomForest': (RandomForestClassifier(random_state=random_state),{
             'n_estimators': [50, 100, 200],
-            'max_depth': [10, 20, None],
+            'max_depth': [None, 10, 20, 30],
             'min_samples_split': [2, 5, 10]
         }),
-        'GradientBoosting': (GradientBoostingRegressor(random_state=random_state), {
-            'learning_rate': [0.01, 0.1, 0.2],
+        'GradientBoosting': (GradientBoostingClassifier(random_state=random_state),{
             'n_estimators': [50, 100, 200],
-            'max_depth': [3, 5, 10]
+            'learning_rate': [0.01, 0.1, 0.2],
+            'max_depth': [3, 5, 7]
         }),
-        'LinearRegression': (LinearRegression(), {
-            'fit_intercept': [True, False]
+        'SVM': (SVC(random_state=random_state),{
+            'C': [0.1, 0.5, 1],
+            'kernel': ['linear', 'rbf', 'poly'],
+            'gamma': ['scale', 'auto']
+        }),
+        'KNN':(KNeighborsClassifier(), {
+            'n_neighbors': [3, 5, 7],
+            'weights': ['uniform', 'distance'],
+            'metric': ['euclidean', 'manhattan']
         })
     }
 
@@ -153,9 +192,6 @@ def chooseBestHiperparameters(X_train,y_train, cv, random_state):
     best_configs = {}
     for mode in ['grid','random']:
         for model_name, (model, param_grid) in models_and_params.items():
-            if(model_name == 'LinearRegression' and mode == 'random'):
-                print(f'Skip {mode} search for {model_name}')
-                continue
             print(f"Running search for {model_name} and {mode} search...")
             search = hyperparameter_search(model, param_grid, X_train,y_train,cv,mode)
             best_model, best_score = search.best_estimator_, search.best_score_
@@ -164,7 +200,7 @@ def chooseBestHiperparameters(X_train,y_train, cv, random_state):
             print(f"{model_name} best score: {best_score:.4f}")
 
     # Compare models and select the best one
-    best_model_name = min(best_models, key=lambda k: best_models[k][1])
+    best_model_name = max(best_models, key=lambda k: best_models[k][1])
     best_model, best_score = best_models[best_model_name]
 
     joblib.dump(best_model, f"models/bestModel_{best_model_name}.pkl")
@@ -199,11 +235,11 @@ def evaluateModel(model, x, y, cv):
         scores = cross_val_score(model, x, y, cv=cv, scoring='accuracy')
         
         return {
-            'Accuracy': round(accuracy, 2),
-            'Precision': round(precision, 2),
-            'Recall': round(recall, 2),
-            'F1Score': round(f1, 2),
-            'CV Accuracy': round(np.mean(scores), 2)
+            'Accuracy': round(accuracy, 4),
+            'Precision': round(precision, 4),
+            'Recall': round(recall, 4),
+            'F1Score': round(f1, 4),
+            'CV Accuracy': round(np.mean(scores), 4)
         }
     elif is_regressor(model):
         y_predict = model.predict(x)
@@ -242,6 +278,7 @@ def readEnv():
     outputFolder = os.getenv("OUTPUT_FOLDER")    
     port = os.getenv("PORT")
 
+    print("ENV values:")
     print(dataset,target, model,trials,deploymentType,inputFolder,outputFolder,port, sep=',')
 
     return dataset,target, model,trials,deploymentType,inputFolder,outputFolder,port

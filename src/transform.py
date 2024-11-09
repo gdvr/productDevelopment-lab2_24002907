@@ -5,8 +5,10 @@ import yaml
 
 from utils.common import  createPreprocesor, splitValuesForModel
 
-def transform(input_file, output_file, features, target):
-    df = pd.read_csv(input_file)
+def transform(features, target):
+    inputFile = 'data/clean_data.csv'
+    outputFile = "data/transformed_data.csv"
+    df = pd.read_csv(inputFile)
 
     numericas = params['continuas'] + params['discretas'] 
     categoricas = params['categoricas']   
@@ -23,7 +25,7 @@ def transform(input_file, output_file, features, target):
     
     X_transformed_df = pd.DataFrame(X_transformed, columns=all_feature_names)
     final_dataset = pd.concat([X_transformed_df, y.reset_index(drop=True)], axis=1)
-    final_dataset.to_csv(output_file, index=False)
+    final_dataset.to_csv(outputFile, index=False)
 
     X_train, y_train,X_test,y_test,X_val, y_val = splitValuesForModel(X_transformed,y,params['train']['TEST_SIZE'],params['train']['VALIDATE_SIZE'],params['train']['RANDOM_STATE'])
     X_train = pd.DataFrame(X_train, columns=all_feature_names) if not isinstance(X_train, pd.DataFrame) else X_train
@@ -39,12 +41,10 @@ def transform(input_file, output_file, features, target):
     X_test.to_csv("data/X_test.csv", index=False)
     X_val.to_csv("data/X_val.csv", index=False)
 
-    print(f"Transformacion completado. Datos guardados en {output_file}")
+    print(f"Transformacion completado. Datos guardados en {outputFile}")
     
 if __name__ == "__main__":
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
-    params_file = sys.argv[3]
+    params_file = sys.argv[1]
 
     with open(params_file) as f:
         params = yaml.safe_load(f)
@@ -52,4 +52,4 @@ if __name__ == "__main__":
     features = params['preprocessing']['features']
     target = params['preprocessing']['target']
 
-    transform(input_file, output_file, features, target)
+    transform(features, target)

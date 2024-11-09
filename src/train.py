@@ -7,8 +7,11 @@ import os
 
 from utils.common import createModel
 
-def train(input_file, output_file,  target):
-    df_features =  pd.read_csv(input_file)
+def train(target):
+    inputFile = 'data/top_features.csv'
+    outputFile = "data/models.csv"
+
+    df_features =  pd.read_csv(inputFile)
 
     df_training =  pd.read_csv("data/X_train.csv")
     df_test =  pd.read_csv("data/X_test.csv")
@@ -18,14 +21,7 @@ def train(input_file, output_file,  target):
 
     X_train = df_training.drop(columns=[target], errors='ignore')
     y_train = df_training[target]
-    X_test = df_test.drop(columns=[target], errors='ignore')
-    y_test = df_test[target]
-    X_val = df_val.drop(columns=[target], errors='ignore')
-    y_val = df_val[target]
-
     X_train = X_train[features]
-    X_test = X_test[features]
-    X_val = X_val[features]
 
     # Entrenar el modelo
     optunaParameters = params['optuna']
@@ -51,17 +47,15 @@ def train(input_file, output_file,  target):
     
 
     df_models = pd.DataFrame({"model_name": models})
-    df_models.to_csv(output_file, index=False)
+    df_models.to_csv(outputFile, index=False)
     print(f"Modelos entrenados y guardados")
 
 if __name__ == "__main__":
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
-    params_file = sys.argv[3]
+    params_file = sys.argv[1]
 
     with open(params_file) as f:
         params = yaml.safe_load(f)    
 
     target = params['preprocessing']['target']
 
-    train(input_file, output_file, target)
+    train(target)

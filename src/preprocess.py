@@ -1,20 +1,39 @@
 # src/preprocess.py
 import pandas as pd
 import sys
+import yaml
 
 from utils.common import categorizeColumns,  detectInvalidValues, handlingEmptyValues, readEnv
 
-def preprocess(input_file, output_file, features, target):
-    readEnv()
-    df = pd.read_csv(input_file)
-    df = df.dropna()
-    columns = features + [target]
-    df = df[columns]
+def preprocess():
+    dataset,target, _,_,_,_,_,_= readEnv()
+    outputFile = "data/clean_data.csv"
+    
 
+    df = pd.read_parquet(dataset, engine='pyarrow')      
+
+    df_features = df.drop(columns=[target], errors='ignore')
+
+
+    features = df_features.columns.to_list()
+    columns = features + [target]
     continuas, discretas, categoricas = categorizeColumns(df[features])
     detectInvalidValues(df[columns])
     handlingEmptyValues(df[columns].copy(),continuas + discretas)
 
+    params = {
+        "preprocessing": {
+            'target': target,
+            'features': features
+        },
+        'train':{
+            'TEST_SIZE':0.3,
+            'VALIDATE_SIZE':0.2,
+            'RANDOM_STATE':2024,
+            'CV':5,
+            'alpha':0.1,
+        }
+    }
     params['continuas'] = continuas
     params['discretas'] = discretas
     params['categoricas'] = categoricas
@@ -22,20 +41,8 @@ def preprocess(input_file, output_file, features, target):
     with open("params.yaml", "w") as f:
         yaml.dump(params, f, default_flow_style=False, sort_keys=False)
 
-    df.to_csv(output_file, index=False)
-    print(f"Preprocesamiento completado. Datos guardados en {output_file}")
+    df.to_csv(outputFile, index=False)
+    print(f"Preprocesamiento completado. Datos guardados en {outputFile}")
 
-if __name__ == "__main__":
-    input_file = sys.argv[1]
-    output_file = sys.argv[2]
-    params_file = sys.argv[3]
-
-    
-    import yaml
-    with open(params_file) as f:
-        params = yaml.safe_load(f)
-    
-    features = params['preprocessing']['features']
-    target = params['preprocessing']['target']
-
-    preprocess(input_file, output_file, features, target)
+if __name__ == "__main__":    
+    preprocess()

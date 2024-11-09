@@ -7,7 +7,10 @@ import os
 
 from utils.common import evaluateModel, readFolder
 
-def evaluate(feature_file, output_file, metrics_file, target):
+def evaluate(metrics_file, target):
+    feature_file = 'data/top_features.csv'    
+    outputFile = "data/results.csv"
+
     df_features =  pd.read_csv(feature_file)
     df_test =  pd.read_csv("data/X_test.csv")
 
@@ -37,8 +40,9 @@ def evaluate(feature_file, output_file, metrics_file, target):
         json.dump(metrics_output, f, indent=4)
 
     df = pd.DataFrame(metrics_output).T.reset_index()
-    df.columns = ["model", "MAE", "MSE", "RMSE", "CV MAE", "R2 Score"]
-    df = df.sort_values(by="CV MAE", ascending=True)
+    df.columns = ["model", "Accuracy","Precision","Recall","F1Score","CV Accuracy"]
+    df = df.sort_values(by="CV Accuracy", ascending=False)
+    df.to_csv(outputFile, index=False)
 
     best_model_name = df.iloc[0]["model"]
     print("Modelo Ganador:", best_model_name)
@@ -51,17 +55,15 @@ def evaluate(feature_file, output_file, metrics_file, target):
         print("Este modielo no tiene parametros.")
 
     
-    df.to_csv(output_file, index=False)
+    
     print(f"Métricas guardadas en {metrics_file}")
-    print(f"Resultados guardadas en {output_file}")
+    print(f"Resultados guardadas en {outputFile}")
    
     
 
 if __name__ == "__main__":
-    feature_input_file = sys.argv[1]
-    output_file = sys.argv[2]
-    metrics_file = sys.argv[3]
-    params_file = sys.argv[4]
+    metrics_file = sys.argv[1]
+    params_file = sys.argv[2]
 
     import yaml
     with open(params_file) as f:
@@ -69,4 +71,4 @@ if __name__ == "__main__":
 
     target = params['preprocessing']['target']
 
-    evaluate(feature_input_file, output_file, metrics_file, target)
+    evaluate(metrics_file, target)
