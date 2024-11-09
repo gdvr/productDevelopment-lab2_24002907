@@ -1,0 +1,8 @@
+train:
+  TEST_SIZE: 0.3
+  VALIDATE_SIZE: 0.2
+  RANDOM_STATE: 2024
+  CV: 5
+  alpha: 0.1
+preprocessing:
+  target: price

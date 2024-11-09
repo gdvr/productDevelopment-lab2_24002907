@@ -1,0 +1,8 @@
+.dvc/cache
+.dvc/tmp
+models/
+__pycache__/
+*pkl
+*.env
+/models
+/datasets
