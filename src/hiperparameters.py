@@ -4,11 +4,11 @@ import sys
 import optuna
 import yaml
 
-from utils.common import  chooseBestHiperparameters, gb_objective, objective, readEnv, rf_objective
+from utils.common import  chooseBestHiperparameters, modelToAppyOptimization,  objective, readEnv
 
 def searchHiperparameters(target):   
     inputFile = 'data/top_features.csv'
-    _,_, _,trials,_,_,_,_= readEnv()
+    _,_,model,trials,_,_,_,_= readEnv()
     
     df_features =  pd.read_csv(inputFile)
 
@@ -27,23 +27,18 @@ def searchHiperparameters(target):
 
     random_state = params['train']['RANDOM_STATE'] 
 
-    models = [
-        "RandomForest",
-        "GradientBoosting",
-        'SVM',
-        "KNN"
-    ]
+    modelsToApplyOptiomization = modelToAppyOptimization()
     params["optuna"] = { }
 
-    for model in models:
+    if model in modelsToApplyOptiomization:
         print(f"start optuna study for: {model}")
         study  = optuna.create_study(direction="maximize")
         study.optimize(lambda trial: objective(trial,X_train, y_train, X_val, y_val, random_state,model), n_trials=int(trials), n_jobs=-1)
         params["optuna"][model] = study.best_params
         print(f"Best {model} parameters:", study.best_params)
 
-    models_best_params = chooseBestHiperparameters(X_train,y_train,params['train']['CV'],random_state)
-    params["optimization"] = models_best_params  
+        models_best_params = chooseBestHiperparameters(X_train,y_train,params['train']['CV'],random_state,model)
+        params["optimization"] = models_best_params  
 
     with open("params.yaml", "w") as f:
         yaml.dump(params, f, default_flow_style=False, sort_keys=False)

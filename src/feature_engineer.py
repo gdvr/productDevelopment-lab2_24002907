@@ -1,10 +1,7 @@
 # src/preprocess.py
 import pandas as pd
 import sys
-import optuna
 import yaml
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.pipeline import Pipeline
 

@@ -5,18 +5,18 @@ import sys
 import yaml
 import os
 
-from utils.common import createModel
+import shutil
+
+from utils.common import createModel, modelToAppyOptimization, readEnv
 
 def train(target):
     inputFile = 'data/top_features.csv'
     outputFile = "data/models.csv"
+    models_folder = 'models'
+    _,_,modelName,_,_,_,_,_= readEnv()
 
     df_features =  pd.read_csv(inputFile)
-
     df_training =  pd.read_csv("data/X_train.csv")
-    df_test =  pd.read_csv("data/X_test.csv")
-    df_val =  pd.read_csv("data/X_val.csv")
-
     features = df_features['feature'].values
 
     X_train = df_training.drop(columns=[target], errors='ignore')
@@ -27,24 +27,35 @@ def train(target):
     optunaParameters = params['optuna']
     optimizationParameters = params['optimization']
 
+    if os.path.exists(models_folder):
+        # If it exists, remove all contents inside the folder
+        shutil.rmtree(models_folder)
+        print(f"Cleared existing contents in '{models_folder}' folder.")
     os.makedirs('models', exist_ok=True)
 
     models = []
 
-    for modelName in optunaParameters:
-        model = createModel(modelName,optunaParameters[modelName])
-        model.fit(X_train, y_train)
-        joblib.dump(model, f"models/{modelName}_optuna.pkl")
-        models.append(f"models/{modelName}_optuna.pkl")
-        print(f"Modelo entrenado y guardado en model/{modelName}_optuna.pkl")
+    modelsToApplyOptiomization = modelToAppyOptimization()
+    params["optuna"] = { }
 
-    for modelName in optimizationParameters:
-        model = createModel(modelName,optimizationParameters[modelName])
+    if modelName in modelsToApplyOptiomization:
+            model = createModel(modelName,optunaParameters[modelName])
+            model.fit(X_train, y_train)
+            joblib.dump(model, f"models/{modelName}_optuna.pkl")
+            models.append(f"models/{modelName}_optuna.pkl")
+            print(f"Modelo entrenado y guardado en model/{modelName}_optuna.pkl")
+
+            model = createModel(modelName,optimizationParameters[modelName])
+            model.fit(X_train, y_train)
+            joblib.dump(model, f"models/{modelName}_optimazed.pkl")
+            models.append(f"models/{modelName}_optimazed.pkl")
+            print(f"Modelo entrenado y guardado en model/{modelName}_optimazed.pkl")
+    else:
+        model = createModel(modelName,{})
         model.fit(X_train, y_train)
-        joblib.dump(model, f"models/{modelName}_optimazed.pkl")
-        models.append(f"models/{modelName}_optimazed.pkl")
-        print(f"Modelo entrenado y guardado en model/{modelName}_optimazed.pkl")
-    
+        joblib.dump(model, f"models/{modelName}.pkl")
+        models.append(f"models/{modelName}.pkl")
+        print(f"Modelo entrenado y guardado en model/{modelName}.pkl")
 
     df_models = pd.DataFrame({"model_name": models})
     df_models.to_csv(outputFile, index=False)

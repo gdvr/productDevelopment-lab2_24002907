@@ -52,7 +52,7 @@ def evaluate(metrics_file, target):
         model_params = model.get_params()
         print("Parametros del modelo:", model_params)
     else:
-        print("Este modielo no tiene parametros.")
+        print("Este modelo no tiene parametros.")
 
     
     

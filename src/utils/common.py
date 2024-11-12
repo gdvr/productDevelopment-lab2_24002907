@@ -89,44 +89,6 @@ def __get_variables_scale_type(dataset):
     
     return continuas, discretas, categoricas     
 
-def rf_objective(trial, X_train, y_train, X_val, y_val, random_state):
-    n_estimators = trial.suggest_int("n_estimators", 50, 300)
-    max_depth = trial.suggest_int("max_depth", 3, 20)
-    min_samples_split = trial.suggest_int("min_samples_split", 2, 10)
-
-    rf = RandomForestRegressor(
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        min_samples_split=min_samples_split,
-        random_state=random_state
-    )
-    
-    rf.fit(X_train, y_train)
-    preds = rf.predict(X_val)
-    mse = mean_squared_error(y_val, preds)
-    return mse
-
-
-def gb_objective(trial, X_train, y_train, X_val, y_val, random_state):
-    learning_rate = trial.suggest_float("learning_rate", 0.01, 0.3)
-    n_estimators = trial.suggest_int("n_estimators", 50, 300)
-    max_depth = trial.suggest_int("max_depth", 3, 20)
-    
-    gb = GradientBoostingRegressor(
-        learning_rate=learning_rate,
-        n_estimators=n_estimators,
-        max_depth=max_depth,
-        random_state=random_state,
-        validation_fraction=0.2,  # 20% of training data for validation
-        n_iter_no_change=10,      # Stop if no improvement for 10 rounds
-        tol=1e-4                  # Tolerance level for early stopping
-    )
-    
-    gb.fit(X_train, y_train)
-    preds = gb.predict(X_val)
-    mse = mean_squared_error(y_val, preds)
-    return mse
-
 def objective(trial, X_train, y_train, X_val, y_val, random_state, model_name):
         model = createModel(model_name,{})
         if model_name == 'RandomForest':
@@ -164,7 +126,7 @@ def hyperparameter_search(model, param_grid, X_train,y_train, cv, search_type):
     search.fit(X_train, y_train)
     return search
 
-def chooseBestHiperparameters(X_train,y_train, cv, random_state):
+def chooseBestHiperparameters(X_train,y_train, cv, random_state, modelToApply):
     models_and_params = {
         'RandomForest': (RandomForestClassifier(random_state=random_state),{
             'n_estimators': [50, 100, 200],
@@ -192,12 +154,13 @@ def chooseBestHiperparameters(X_train,y_train, cv, random_state):
     best_configs = {}
     for mode in ['grid','random']:
         for model_name, (model, param_grid) in models_and_params.items():
-            print(f"Running search for {model_name} and {mode} search...")
-            search = hyperparameter_search(model, param_grid, X_train,y_train,cv,mode)
-            best_model, best_score = search.best_estimator_, search.best_score_
-            best_models[model_name] = (best_model, best_score)
-            best_configs[model_name] = search.best_params_
-            print(f"{model_name} best score: {best_score:.4f}")
+            if(model_name ==modelToApply):
+                print(f"Running search for {model_name} and {mode} search...")
+                search = hyperparameter_search(model, param_grid, X_train,y_train,cv,mode)
+                best_model, best_score = search.best_estimator_, search.best_score_
+                best_models[model_name] = (best_model, best_score)
+                best_configs[model_name] = search.best_params_
+                print(f"{model_name} best score: {best_score:.4f}")
 
     # Compare models and select the best one
     best_model_name = max(best_models, key=lambda k: best_models[k][1])
@@ -283,4 +246,10 @@ def readEnv():
 
     return dataset,target, model,trials,deploymentType,inputFolder,outputFolder,port
     
-    
+def modelToAppyOptimization():
+    return [
+        "RandomForest",
+        "GradientBoosting",
+        'SVM',
+        "KNN"
+    ]

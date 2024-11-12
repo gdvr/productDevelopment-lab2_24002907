@@ -1,20 +1,30 @@
 import pandas as pd
+import joblib
 
-import os
-from utils.common import readFolder
+feature_file = 'data/results.csv'    
 
+df =  pd.read_csv(feature_file)
+best_model_name = df.iloc[0]["model"]
+print("Modelo Ganador:", best_model_name)
 
-models_list = readFolder("datasets","csv")
-metrics_output = {}
-models_analysis = {}
-for model_name in models_list:   
-    #We need to concat only the filename because into the readfolder method we change our target path
-    print(model_name)
-    csvFullPath = os.path.join(os.getcwd(),model_name)
-    csv_file_path = csvFullPath # Replace with your CSV file path
-    df = pd.read_csv(csv_file_path)
-    # Save as Parquet file
-    parquet_file_path = f"{model_name}.parquet"  # Specify your Parquet file path
-    df.to_parquet(parquet_file_path, engine='pyarrow')  # You can use 'fastparquet' as well
+inputFile = 'data/top_features.csv'
+df_features =  pd.read_csv(inputFile)
+df_val =  pd.read_csv("data/X_val.csv")
+features = df_features['feature'].values
+X_train = df_val.drop(columns=["HeartDisease"], errors='ignore')
+X_train = X_train[features]
 
-    print(f"File converted and saved as {parquet_file_path}")
+model = joblib.load(f"models/{best_model_name}")
+
+sample = X_train.iloc[3:4]
+print(sample)
+# Make predictions
+prediction = model.predict(sample)
+print("Prediction:", prediction[0])
+
+# Make probability predictions (if the model supports it)
+if hasattr(model, "predict_proba"):
+    prediction_proba = model.predict_proba(sample)
+    print("Prediction Probabilities:", prediction_proba[0])
+else:
+    print("The model does not support probability predictions.")
