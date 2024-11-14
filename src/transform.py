@@ -2,6 +2,7 @@
 import pandas as pd
 import sys
 import yaml
+import joblib
 
 from utils.common import  createPreprocesor, splitValuesForModel
 
@@ -17,7 +18,10 @@ def transform(features, target):
     y = df[target]
 
     preprocessor = createPreprocesor(categoricas,numericas)
+    preprocessor.fit(X)
     X_transformed = preprocessor.fit_transform(X)
+
+    joblib.dump(preprocessor, 'models/preprocessor.pkl')
 
     num_features = preprocessor.transformers_[0][2]
     cat_features = preprocessor.transformers_[1][1].get_feature_names_out(categoricas)
