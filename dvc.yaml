@@ -1,0 +1,42 @@
+stages:
+  preprocess:
+    cmd: python .\src\preprocess.py
+    deps:
+    - data/data.csv
+    outs:
+    - data/clean_data.csv
+  transform:
+    cmd: python .\src\transform.py params.yaml
+    deps:
+    - data/clean_data.csv
+    - params.yaml
+    outs:
+    - data/transformed_data.csv
+  featureEngineer:
+    cmd: python .\src\feature_engineer.py params.yaml
+    deps:
+    - data/transformed_data.csv
+    - params.yaml
+    outs:
+    - data/top_features.csv
+  hiperparameters:
+    cmd: python .\src\hiperparameters.py params.yaml
+    deps:
+    - data/top_features.csv
+    - params.yaml
+  train:
+    cmd: python .\src\train.py params.yaml
+    deps:
+    - data/top_features.csv
+    - params.yaml
+    outs:
+    - data/models.csv
+  evaluate:
+    cmd: python .\src\evaluate.py evaluation_metrics.json params.yaml
+    deps:
+    - data/models.csv
+    - data/top_features.csv
+    - params.yaml
+    outs:
+    - data/results.csv
+    - evaluation_metrics.json

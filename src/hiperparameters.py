@@ -3,12 +3,14 @@ import pandas as pd
 import sys
 import optuna
 import yaml
+import os
 
 from utils.common import  chooseBestHiperparameters, modelToAppyOptimization,  objective, readEnv
 
 def searchHiperparameters(target):   
     inputFile = 'data/top_features.csv'
     _,_,model,trials,_,_,_,_= readEnv()
+    os.makedirs('models', exist_ok=True)
     
     df_features =  pd.read_csv(inputFile)
 
