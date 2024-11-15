@@ -18,20 +18,16 @@ categoricas = params['categoricas']
 inputFile = 'data/top_features.csv'
 df_features =  pd.read_csv(inputFile)
 
-# Initialize FastAPI app
 app = FastAPI()
 
-# Load model on startup
 model = joblib.load("models/RandomForest_optuna.pkl")
 preprocessor = joblib.load('models/preprocessor.pkl')
 
 
 # Dynamically create a Pydantic model based on the CSV columns
 def create_dynamic_model() -> Type:
-    # Use dictionary comprehension to create fields with `float` type
     fields: Dict[str, Union[float, str]] = {col: (float, ...) for col in numericas}
     fields.update({col: (str, ...) for col in categoricas})
-    # Create and return the dynamic model class
     print(fields)
     return create_model("PredictionRequest", **fields)
 
@@ -56,7 +52,7 @@ def predict(data:  List[PredictionRequest]):
             else:
                 probability_dict = None  # If no probability support
             
-            predictions.append(probability_dict)  # Add the probabilities for this sample
+            predictions.append(probability_dict) 
 
         response = {"predictions": predictions}
         return response
