@@ -1,4 +1,3 @@
-import os
 import pandas as pd
 import joblib
 from datetime import datetime
@@ -6,13 +5,18 @@ from pathlib import Path
 import yaml
 import time
 import schedule
+from utils.common import readEnv
 
+_,_,_,_,_,inputFolder,outputFolder,_= readEnv()
 
-input_folder = Path("input")
-output_folder = Path("output/folder")
+df =  pd.read_csv("data/results.csv")
+best_model_name = df.iloc[0]["model"]
+
+input_folder = Path(inputFolder)
+output_folder = Path(outputFolder)
 output_folder.mkdir(parents=True, exist_ok=True)
 
-model = joblib.load("models/RandomForest_optuna.pkl")
+model = joblib.load(f"models/{best_model_name}")
 preprocessor = joblib.load('models/preprocessor.pkl')
 
 inputFile = 'data/top_features.csv'

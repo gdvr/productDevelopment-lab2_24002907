@@ -5,14 +5,12 @@ import sys
 import yaml
 import os
 
-import shutil
 
 from utils.common import createModel, modelToAppyOptimization, readEnv
 
 def train(target):
     inputFile = 'data/top_features.csv'
     outputFile = "data/models.csv"
-    models_folder = 'models'
     _,_,modelName,_,_,_,_,_= readEnv()
 
     df_features =  pd.read_csv(inputFile)
@@ -27,12 +25,6 @@ def train(target):
     optunaParameters = params['optuna']
     optimizationParameters = params['optimization']
 
-    """
-    if os.path.exists(models_folder):
-        # If it exists, remove all contents inside the folder
-        shutil.rmtree(models_folder)
-        print(f"Cleared existing contents in '{models_folder}' folder.")
-    """
     os.makedirs('models', exist_ok=True)
 
     models = []

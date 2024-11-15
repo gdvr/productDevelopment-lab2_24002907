@@ -40,3 +40,7 @@ stages:
     outs:
     - data/results.csv
     - evaluation_metrics.json
+  deploy:
+    cmd: python .\src\deploy.py
+    deps:
+    - data/results.csv

@@ -34,11 +34,11 @@ categoricas:
 - ST_Slope
 optuna:
   RandomForest:
-    n_estimators: 107
+    n_estimators: 132
     max_depth: 6
-    min_samples_split: 7
+    min_samples_split: 6
 optimization:
   RandomForest:
     n_estimators: 50
     min_samples_split: 10
-    max_depth: 10
+    max_depth: null
