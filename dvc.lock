@@ -1,104 +1,99 @@
 schema: '2.0'
 stages:
   preprocess:
-    cmd: python .\src\preprocess.py
-    deps:
-    - path: data/data.csv
-      hash: md5
-      md5: ab21f2524241ed14b321bcaf40c8b86e
-      size: 35921
+    cmd: python src/preprocess.py
     outs:
     - path: data/clean_data.csv
       hash: md5
-      md5: 2f1517b2bcbb7b5cf15335fe45b7b82e
-      size: 37980
+      md5: 3155f71c567752e38f24f887ce0c4ef8
+      size: 72970
   transform:
-    cmd: python .\src\transform.py params.yaml
+    cmd: python src/transform.py params.yaml
     deps:
     - path: data/clean_data.csv
       hash: md5
-      md5: 2f1517b2bcbb7b5cf15335fe45b7b82e
-      size: 37980
+      md5: 3155f71c567752e38f24f887ce0c4ef8
+      size: 72970
     - path: params.yaml
       hash: md5
-      md5: 19e87eb6694de5fe891e5a3b943169b5
-      size: 478
+      md5: 207b5d46999adf96afed7838f3c2145b
+      size: 563
     outs:
     - path: data/transformed_data.csv
       hash: md5
-      md5: 68025d52be5c7229debdbfb88f602932
-      size: 82471
+      md5: 055835269c97a5d635495e03241c1720
+      size: 75256
   featureEngineer:
-    cmd: python .\src\feature_engineer.py params.yaml
+    cmd: python src/feature_engineer.py params.yaml
     deps:
     - path: data/transformed_data.csv
       hash: md5
-      md5: 68025d52be5c7229debdbfb88f602932
-      size: 82471
+      md5: 055835269c97a5d635495e03241c1720
+      size: 75256
     - path: params.yaml
       hash: md5
-      md5: 19e87eb6694de5fe891e5a3b943169b5
-      size: 478
+      md5: 207b5d46999adf96afed7838f3c2145b
+      size: 563
     outs:
     - path: data/top_features.csv
       hash: md5
-      md5: 1790751035f62e1003ac4b1e93d54580
-      size: 321
+      md5: 658792e6d825584a18304e220cc22536
+      size: 335
   hiperparameters:
-    cmd: python .\src\hiperparameters.py params.yaml
+    cmd: python src/hiperparameters.py params.yaml
     deps:
     - path: data/top_features.csv
       hash: md5
-      md5: 1790751035f62e1003ac4b1e93d54580
-      size: 321
+      md5: 658792e6d825584a18304e220cc22536
+      size: 335
     - path: params.yaml
       hash: md5
-      md5: a7808f012028f8243a1efba41095162c
-      size: 673
+      md5: 4d2ccb2ed368d2cb8d2e887d994c9e3c
+      size: 775
   train:
-    cmd: python .\src\train.py params.yaml
+    cmd: python src/train.py params.yaml
     deps:
     - path: data/top_features.csv
       hash: md5
-      md5: 1790751035f62e1003ac4b1e93d54580
-      size: 321
+      md5: 658792e6d825584a18304e220cc22536
+      size: 335
     - path: params.yaml
       hash: md5
-      md5: a7808f012028f8243a1efba41095162c
-      size: 673
+      md5: 4d2ccb2ed368d2cb8d2e887d994c9e3c
+      size: 775
     outs:
     - path: data/models.csv
       hash: md5
-      md5: ff7ce7565167ea387896e12693496a9a
-      size: 79
+      md5: 83848219cfbdd785c8ffb23c7abf43c5
+      size: 87
   evaluate:
-    cmd: python .\src\evaluate.py evaluation_metrics.json params.yaml
+    cmd: python src/evaluate.py evaluation_metrics.json params.yaml
     deps:
     - path: data/models.csv
       hash: md5
-      md5: ff7ce7565167ea387896e12693496a9a
-      size: 79
+      md5: 83848219cfbdd785c8ffb23c7abf43c5
+      size: 87
     - path: data/top_features.csv
       hash: md5
-      md5: 1790751035f62e1003ac4b1e93d54580
-      size: 321
+      md5: 658792e6d825584a18304e220cc22536
+      size: 335
     - path: params.yaml
       hash: md5
-      md5: a7808f012028f8243a1efba41095162c
-      size: 673
+      md5: 4d2ccb2ed368d2cb8d2e887d994c9e3c
+      size: 775
     outs:
     - path: data/results.csv
       hash: md5
-      md5: fd8c1b1835b0c9ff98ce9c7def12e772
-      size: 239
+      md5: 76f68b2f8ac302194e9b2a5d18b7926c
+      size: 249
     - path: evaluation_metrics.json
       hash: md5
-      md5: b8c9a1dd995733f946fe0759a5ea766e
-      size: 570
+      md5: 8ebde4e0c944fa28f794cf262c8264be
+      size: 580
   deploy:
-    cmd: python .\src\deploy.py
+    cmd: python src/deploy.py
     deps:
     - path: data/results.csv
       hash: md5
-      md5: fd8c1b1835b0c9ff98ce9c7def12e772
-      size: 239
+      md5: 76f68b2f8ac302194e9b2a5d18b7926c
+      size: 249

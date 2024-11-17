@@ -8,7 +8,7 @@ _,_,_,_,deploymentType,_,_,port= readEnv()
 
 def run_api(port=8000):
     print("Starting FastAPI server...")
-    subprocess.run(["uvicorn", "src.api:app", "--reload", "--port", str(port)])
+    subprocess.run(["uvicorn", "src.api:app", "--reload", "--port", str(port), "--host", "0.0.0.0"])
 
 def run_batch():
     print("Starting batch prediction scheduler...")

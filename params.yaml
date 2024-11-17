@@ -1,17 +1,18 @@
 preprocessing:
-  target: HeartDisease
+  target: quality
   features:
-  - Age
-  - Sex
-  - ChestPainType
-  - RestingBP
-  - Cholesterol
-  - FastingBS
-  - RestingECG
-  - MaxHR
-  - ExerciseAngina
-  - Oldpeak
-  - ST_Slope
+  - fixed acidity
+  - volatile acidity
+  - citric acid
+  - residual sugar
+  - chlorides
+  - free sulfur dioxide
+  - total sulfur dioxide
+  - density
+  - pH
+  - sulphates
+  - alcohol
+  - Id
 train:
   TEST_SIZE: 0.3
   VALIDATE_SIZE: 0.2
@@ -19,26 +20,27 @@ train:
   CV: 5
   alpha: 0.1
 continuas:
-- Age
-- RestingBP
-- Cholesterol
-- MaxHR
-- Oldpeak
-discretas:
-- FastingBS
-categoricas:
-- Sex
-- ChestPainType
-- RestingECG
-- ExerciseAngina
-- ST_Slope
+- fixed acidity
+- volatile acidity
+- citric acid
+- residual sugar
+- chlorides
+- free sulfur dioxide
+- total sulfur dioxide
+- density
+- pH
+- sulphates
+- alcohol
+- Id
+discretas: []
+categoricas: []
 optuna:
-  RandomForest:
-    n_estimators: 132
-    max_depth: 6
-    min_samples_split: 6
+  GradientBoosting:
+    n_estimators: 109
+    learning_rate: 0.09192319357389454
+    max_depth: 4
 optimization:
-  RandomForest:
-    n_estimators: 50
-    min_samples_split: 10
-    max_depth: null
+  GradientBoosting:
+    n_estimators: 100
+    max_depth: 7
+    learning_rate: 0.2

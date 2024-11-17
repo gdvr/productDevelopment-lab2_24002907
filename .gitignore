@@ -5,6 +5,7 @@ __pycache__/
 *pkl
 *.env
 /models
-/datasets
-*.csv
+/datasets_test
 /evaluation_metrics.json
+/output/*.csv
+/data/*.csv

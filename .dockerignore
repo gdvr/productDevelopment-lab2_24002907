@@ -4,3 +4,4 @@ __pycache__
 .dvc/cache
 .dvc/tmp
 data/
+datasets_test/

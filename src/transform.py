@@ -23,10 +23,16 @@ def transform(features, target):
 
     joblib.dump(preprocessor, 'models/preprocessor.pkl')
 
-    num_features = preprocessor.transformers_[0][2]
-    cat_features = preprocessor.transformers_[1][1].get_feature_names_out(categoricas)
-    all_feature_names = list(num_features) + list(cat_features)    
-    
+
+    if(len(categoricas) > 0):
+        num_features = preprocessor.transformers_[0][2]
+        cat_features = preprocessor.transformers_[1][1].get_feature_names_out(categoricas)
+        all_feature_names = list(num_features) + list(cat_features) 
+    else:
+        print(preprocessor)
+        num_features = preprocessor.transformers_[0][2]
+        all_feature_names = list(num_features)   
+        
     X_transformed_df = pd.DataFrame(X_transformed, columns=all_feature_names)
     final_dataset = pd.concat([X_transformed_df, y.reset_index(drop=True)], axis=1)
     final_dataset.to_csv(outputFile, index=False)

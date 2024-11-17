@@ -175,11 +175,17 @@ def chooseBestHiperparameters(X_train,y_train, cv, random_state, modelToApply):
 
 def createPreprocesor(categoricals, numerics):
     one_hot_encoder = OneHotEncoder()
+
+    transformers=[]
+
+    if(len(numerics) > 0):
+        transformers.append(('num', 'passthrough', numerics))
+    if(len(categoricals)> 0):
+        transformers.append(('cat', one_hot_encoder, categoricals))
+
+    
     preprocessor = ColumnTransformer(
-        transformers=[           
-            ('num', 'passthrough', numerics),
-            ('cat', one_hot_encoder, categoricals),
-        ]
+        transformers=transformers
     )
 
     return preprocessor
@@ -232,14 +238,14 @@ def readFolder(path, extension):
 
 def readEnv():
     load_dotenv()
-    dataset = os.getenv("DATASET")
-    target = os.getenv("TARGET")
-    model = os.getenv("MODEL")
-    trials = os.getenv("TRIALS")
-    deploymentType = os.getenv("DEPLOYMENT_TYPE")
-    inputFolder = os.getenv("INPUT_FOLDER")
-    outputFolder = os.getenv("OUTPUT_FOLDER")    
-    port = os.getenv("PORT")
+    dataset = os.getenv("DATASET").strip('"').strip("'")
+    target = os.getenv("TARGET").strip('"').strip("'")
+    model = os.getenv("MODEL").strip('"').strip("'")
+    trials = os.getenv("TRIALS").strip('"').strip("'")
+    deploymentType = os.getenv("DEPLOYMENT_TYPE").strip('"').strip("'")
+    inputFolder = os.getenv("INPUT_FOLDER").strip('"').strip("'")
+    outputFolder = os.getenv("OUTPUT_FOLDER").strip('"').strip("'")   
+    port = os.getenv("PORT").strip('"').strip("'")
 
     print("ENV values:")
     print(dataset,target, model,trials,deploymentType,inputFolder,outputFolder,port, sep=',')

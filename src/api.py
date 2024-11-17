@@ -67,7 +67,10 @@ def healthCheck():
 def preprocess_sample(input_data: pd.DataFrame, features) -> pd.DataFrame:
     X_transformed = preprocessor.transform(input_data)
     num_features = preprocessor.transformers_[0][2]
-    cat_features = preprocessor.transformers_[1][1].get_feature_names_out(categoricas)
-    all_feature_names = list(num_features) + list(cat_features)    
+    if(len(preprocessor.transformers_) > 1 and len(preprocessor.transformers_[1]) > 0):
+        cat_features = preprocessor.transformers_[1][1].get_feature_names_out(categoricas)
+        all_feature_names = list(num_features) + list(cat_features)    
+    else:
+        all_feature_names = list(num_features)
     X_transformed_df = pd.DataFrame(X_transformed, columns=all_feature_names)
     return X_transformed_df[features]

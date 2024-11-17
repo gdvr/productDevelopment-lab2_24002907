@@ -10,11 +10,17 @@ def preprocess():
     dataset,target, _,_,_,_,_,_= readEnv()
     outputFile = "data/clean_data.csv"
     
-    models_folder = 'models'
-    if os.path.exists(models_folder):
-        shutil.rmtree(models_folder)
-        print(f"Cleared existing contents in '{models_folder}' folder.")
-    os.makedirs('models', exist_ok=True)
+    folder = 'models'
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+        print(f"Cleared existing contents in '{folder}' folder.")
+    os.makedirs(folder, exist_ok=True)
+
+    folder = 'data'
+    if os.path.exists(folder):
+        shutil.rmtree(folder)
+        print(f"Cleared existing contents in '{folder}' folder.")
+    os.makedirs(folder, exist_ok=True)
     
 
     df = pd.read_parquet(dataset, engine='pyarrow')      

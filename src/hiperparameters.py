@@ -30,7 +30,8 @@ def searchHiperparameters(target):
     random_state = params['train']['RANDOM_STATE'] 
 
     modelsToApplyOptiomization = modelToAppyOptimization()
-    params["optuna"] = { }
+    params["optuna"] = {}
+    params["optimization"] = {}
 
     if model in modelsToApplyOptiomization:
         print(f"start optuna study for: {model}")
