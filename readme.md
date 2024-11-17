@@ -25,7 +25,7 @@ docker run -v C:\Users\gerda\OneDrive\Documentos\Maestria\productDevelopment-lab
 
 - Container en modo Batch
 ```docker
-docker run -v docker run -v C:\Users\gerda\OneDrive\Documentos\Maestria\productDevelopment-lab2_24002907\datasets:/app/datasets -v C:\Users\gerda\OneDrive\Documentos\Maestria\productDevelopment-lab2_24002907\input:/app/input -v C:\Users\gerda\OneDrive\Documentos\Maestria\productDevelopment-lab2_24002907\output:/app/output --rm -d --env-file .\.env --name lab2_batch lab2:latest
+docker run -v C:\Users\gerda\OneDrive\Documentos\Maestria\productDevelopment-lab2_24002907\datasets:/app/datasets -v C:\Users\gerda\OneDrive\Documentos\Maestria\productDevelopment-lab2_24002907\input:/app/input -v C:\Users\gerda\OneDrive\Documentos\Maestria\productDevelopment-lab2_24002907\output:/app/output --rm -d --env-file .\.env --name lab2_batch lab2:latest
 ```
 **Nota:** Dependiendo el modo se debe de adjuntar los volumenes requeridos para poder tener acceso a los archivos durante el proceso de ejecucion de la pipeline.
 
