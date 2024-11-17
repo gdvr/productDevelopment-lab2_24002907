@@ -18,6 +18,7 @@ COPY . /app
 # Install Python dependencies from your requirements file
 RUN pip install --no-cache-dir -r requirements.txt
 
+RUN git init
 
 # Entry point for running DVC pipeline
 CMD ["dvc", "repro"]
