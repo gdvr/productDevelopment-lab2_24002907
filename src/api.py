@@ -51,7 +51,21 @@ def predict(data:  List[PredictionRequest]):
             else:
                 probability_dict = None  # If no probability support
             
-            predictions.append(probability_dict) 
+            target_mapping = {
+                'Pedido insuficiente': 0,
+                'Posible producto eliminando de catalogo': 1,
+                'Posible quiebre de stock por pedido insuficiente': 2,
+                'Posible venta atípica': 3,
+                'Producto sano': 4,
+                'inventario negativo': 5,
+                'producto nuevo sin movimiento': 6
+            }
+            reverse_target_mapping = {v: k for k, v in target_mapping.items()}
+            probability_dict_with_labels = {
+                reverse_target_mapping[int(class_name)]: prob 
+                for class_name, prob in probability_dict.items()
+            }
+            predictions.append(probability_dict_with_labels) 
 
         response = {"predictions": predictions}
         return response
@@ -65,12 +79,9 @@ def healthCheck():
         
 
 def preprocess_sample(input_data: pd.DataFrame, features) -> pd.DataFrame:
+
     X_transformed = preprocessor.transform(input_data)
     num_features = preprocessor.transformers_[0][2]
-    if(len(preprocessor.transformers_) > 1 and len(preprocessor.transformers_[1]) > 0):
-        cat_features = preprocessor.transformers_[1][1].get_feature_names_out(categoricas)
-        all_feature_names = list(num_features) + list(cat_features)    
-    else:
-        all_feature_names = list(num_features)
+    all_feature_names = list(num_features)
     X_transformed_df = pd.DataFrame(X_transformed, columns=all_feature_names)
     return X_transformed_df[features]

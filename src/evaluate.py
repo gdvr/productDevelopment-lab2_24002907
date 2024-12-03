@@ -5,6 +5,7 @@ import json
 import sys
 import os
 
+from sklearn.impute import SimpleImputer
 from utils.common import evaluateModel, readEnv, readFolder
 
 def evaluate(metrics_file, target):
@@ -22,6 +23,19 @@ def evaluate(metrics_file, target):
     y_test = df_test[target]
     X_test = X_test[features]
 
+    target_mapping = {
+        'Pedido insuficiente': 0,
+        'Posible producto eliminando de catalogo': 1,
+        'Posible quiebre de stock por pedido insuficiente': 2,
+        'Posible venta atípica': 3,
+        'Producto sano': 4,
+        'inventario negativo': 5,
+        'producto nuevo sin movimiento': 6
+    }
+
+    imputer = SimpleImputer(strategy='mean')  # Options: 'mean', 'median', 'most_frequent', 'constant'
+    X_test_imputed = imputer.fit_transform(X_test)
+    
     rootPath = os.getcwd()
     models_list = readFolder("models","pkl")
 
@@ -31,7 +45,7 @@ def evaluate(metrics_file, target):
         if modelName.lower() in model_name.lower():                
             model_fullPath = os.path.join(os.getcwd(),model_name)
             model = joblib.load(model_fullPath)
-            metrics = evaluateModel(model,X_test,y_test,params['train']['CV'])
+            metrics = evaluateModel(model,X_test_imputed,y_test.map(target_mapping),params['train']['CV'])
             metrics_output[model_name] = metrics
             models_analysis[model_name] = model
     

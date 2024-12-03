@@ -1,18 +1,18 @@
 preprocessing:
-  target: quality
+  target: category
   features:
-  - fixed acidity
-  - volatile acidity
-  - citric acid
-  - residual sugar
-  - chlorides
-  - free sulfur dioxide
-  - total sulfur dioxide
-  - density
-  - pH
-  - sulphates
-  - alcohol
-  - Id
+  - Venta dia anterior
+  - Stock dia actual
+  - Last 4 Weeks Avg
+  - Days Since Last Sale
+  - Total Presence
+  - '% global tiendas'
+  - Percentage Difference
+  - Condition
+  - Remaining Days
+  - Remaining Broke
+  - has sales
+  - enough information
 train:
   TEST_SIZE: 0.3
   VALIDATE_SIZE: 0.2
@@ -20,27 +20,19 @@ train:
   CV: 5
   alpha: 0.1
 continuas:
-- fixed acidity
-- volatile acidity
-- citric acid
-- residual sugar
-- chlorides
-- free sulfur dioxide
-- total sulfur dioxide
-- density
-- pH
-- sulphates
-- alcohol
-- Id
+- Venta dia anterior
+- Stock dia actual
+- Last 4 Weeks Avg
+- Days Since Last Sale
+- Total Presence
+- '% global tiendas'
+- Percentage Difference
+- Remaining Days
 discretas: []
 categoricas: []
 optuna:
-  GradientBoosting:
-    n_estimators: 109
-    learning_rate: 0.09192319357389454
-    max_depth: 4
-optimization:
-  GradientBoosting:
-    n_estimators: 100
-    max_depth: 7
-    learning_rate: 0.2
+  RandomForest:
+    n_estimators: 155
+    max_depth: 16
+    min_samples_split: 6
+optimization: {}

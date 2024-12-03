@@ -13,8 +13,10 @@ from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.naive_bayes import GaussianNB
 import numpy as np
+import pandas as pd
 import os
 from dotenv import load_dotenv
+from pymongo import MongoClient
 
 
 models_Def = {
@@ -24,6 +26,25 @@ models_Def = {
     'SVM': SVC,
     "KNN":KNeighborsClassifier
 }
+
+def readFiles(path):
+    print(path)
+    data = []
+    os.chdir(path)
+    files = ""
+    for file in os.listdir():
+        if file.endswith(".xlsx"):
+            file_path = f"{path}\{file}"
+            if "walmart_semana" in file_path.lower():
+                print(f"Processing {file_path}...")
+                data.append(read_text_file(file_path))
+                print(f"Processed {file_path}")
+    if len(data) != 0:
+        data = pd.concat(data)
+    else:
+        print('Error, debe tener el archivo datos en xlsx y archivo ecat en txt')
+
+    return data
 
 def splitValuesForModel(X,y, TEST_SIZE, VALIDATE_SIZE,RANDOM_STATE):
     X_train_val, X_test, y_train_val, y_test = train_test_split(X,  y, test_size=TEST_SIZE, random_state=RANDOM_STATE)
@@ -259,3 +280,273 @@ def modelToAppyOptimization():
         'SVM',
         "KNN"
     ]
+
+def calculateDF(df_test):
+    df_test = df_test.sort_values(by=['storeId', 'productId', 'Fecha']).reset_index(drop=True)
+    
+    df_test = calculate_last_4_weeks_avg_optimized(df_test)    
+    print("Execute calculate_last_4_weeks_avg_optimized")
+    df_test = calculate_oldest_sale_date_vectorized(df_test)
+    print("Execute calculate_oldest_sale_date_vectorized")
+    df_test = totalPresence(df_test)
+    print("Execute totalPresence")
+    df_test = define_rotation_type(df_test)
+    print("Execute define_rotation_type")
+    df_test = calculate_percentage_diff_and_condition(df_test)
+    print("Execute calculate_percentage_diff_and_condition")
+    df_test = calculate_remaining_days_and_broke(df_test)
+    print("Execute calculate_remaining_days_and_broke")
+    df_test = checkSales(df_test)
+    print("Execute checkSales")
+    df_test['category'] = df_test.apply(assign_category, axis=1)
+
+    return df_test
+
+
+
+def preproccingDF(data):
+    df_test = data.copy()    
+    catalogDescription = pd.read_excel("products.xlsx")  
+    storeDescription = pd.read_excel("stores.xlsx")  
+    categoryDescription = pd.read_excel("categories.xlsx")
+    catalogDescription['productId'] = (catalogDescription['productId']).astype(str)  
+    catalogDescription['OriginalBarCode'] = (catalogDescription['OriginalBarCode']).astype(str)  
+    catalogDescription['OriginalBarCode'] = catalogDescription['OriginalBarCode'].apply(lambda x: x.rstrip(".0") if x.endswith(".0") else x)
+    print(catalogDescription.dtypes)
+    print(data.dtypes)
+    
+    joined_df = pd.merge(df_test,catalogDescription,how='left',left_on='Código Barra CP',right_on='OriginalBarCode')
+    joined_df = pd.merge(joined_df,storeDescription,how='left',left_on='Store Nbr',right_on='OriginalStoreCode')
+    joined_df = pd.merge(joined_df,categoryDescription,how='left',left_on='SubBrand CP',right_on='OriginalCategory')
+    joined_df = joined_df[['Promedio Rotación Semanal','Inv On Hand','Inv en Tránsito','Inv preparandose en CD','productDescription','productId','storeId','storeDescription','categoryId','País','Fecha']]
+    joined_df = joined_df.rename(columns={"Promedio Rotación Semanal": "Venta dia anterior",
+                                "Inv On Hand": "Stock dia actual",
+                                "Inv en Tránsito": "Pedido en transito",
+                                "Inv preparandose en CD": "Pedido procesandose"                         
+                                })
+    return cleanDF(joined_df)
+
+def cleanDF(df_test):
+    duplicates = df_test.duplicated(subset=['Fecha', 'productId', 'storeId','País'], keep=False)
+    
+    if duplicates.any():
+        print("Duplicate rows found:")
+        print(df_test[duplicates].shape)
+    
+        df_test = (
+            df_test.groupby(['Fecha', 'productId', 'storeId','País'], as_index=False)
+            .agg({'Venta dia anterior': 'sum', 'Stock dia actual': 'sum'})
+        )
+        print("Duplicates resolved. Cleaned data:")
+        print(df_test.shape)
+    return df_test
+
+def calculate_last_4_weeks_avg_optimized(df):
+    df['Shifted Venta'] = df.groupby(['storeId', 'productId'])['Venta dia anterior'].shift(1) #Exclude the current date
+    df['Rolling Avg'] = (
+        df.groupby(['storeId', 'productId'])['Shifted Venta']
+        .transform(lambda x: x.rolling(window=4, min_periods=1).mean()) #Average for the 4 previous records
+    )
+    df['Rolling Count'] = (
+        df.groupby(['storeId', 'productId'])['Shifted Venta']
+        .transform(lambda x: x.rolling(window=4, min_periods=1).count()) # Count for the rows that has more than 4 records
+    )
+    
+    df['Last 4 Weeks Avg'] = df['Rolling Avg'].where(df['Rolling Count'] >= 4, -1)
+    # Drop columns
+    df.drop(columns=['Shifted Venta', 'Rolling Avg', 'Rolling Count'], inplace=True)
+    return df
+
+def calculate_oldest_sale_date_vectorized(df):
+    df = df.sort_values(by=["storeId", "productId", "Fecha"]).reset_index(drop=True)
+
+    sales_mask = df["Venta dia anterior"] > 0
+
+    df["Last Sale Date"] = (
+        df[sales_mask]
+        .groupby(["storeId", "productId"])["Fecha"]
+        .transform(lambda x: x.ffill())
+    )
+    df["Last Sale Date"] = (
+        df.groupby(["storeId", "productId"])["Last Sale Date"]
+        .ffill()
+    )
+    df["Days Since Last Sale"] = (df["Fecha"] - df["Last Sale Date"]).dt.days.fillna(-1).astype(int)
+
+    return df
+
+
+
+def totalPresence(df_test):
+    df_test['Total Presence'] = (
+        df_test[df_test['Stock dia actual'] > 0]
+        .groupby(['productId', 'País', 'Fecha'])['storeId']
+        .transform('nunique')
+        .fillna(0)
+        .astype(int)
+    )
+    
+    df_test['Total Presence'] = df_test['Total Presence'].fillna(0).astype(int) # FIll the invalid values
+    
+    total_stores_per_country = df_test.groupby('País')['storeId'].nunique()
+    df_test['total tiendas'] = df_test['País'].map(total_stores_per_country)
+    df_test['% global tiendas'] = df_test['Total Presence'] / df_test['total tiendas'] # Calculate the percentage of presence
+    
+    return df_test
+
+def define_rotation_type(df_test):
+    last_dates = (
+        df_test.groupby(['storeId', 'productId'])['Fecha']
+        .max()
+        .reset_index(name='Last Date')
+    )
+    
+    df_test = df_test.merge(last_dates, on=['storeId', 'productId'], how='left')
+
+    last_date_rows = df_test[df_test['Fecha'] == df_test['Last Date']]
+
+    mode_values = (
+        last_date_rows.groupby(['storeId', 'productId'])['Days Since Last Sale']
+        .agg(lambda x: x.mode()[0] if not x.mode().empty else None)
+        .reset_index(name='Mode')
+    )
+    
+    mode_values['Rotation Type'] = mode_values['Mode'].apply(classify_rotation_type)
+
+    df_test = df_test.merge(
+        mode_values[['storeId', 'productId', 'Rotation Type']],
+        on=['storeId', 'productId'],
+        how='left'
+    )
+
+    df_test.drop(columns=['Last Date'], inplace=True)
+
+    return df_test
+
+
+def classify_rotation_type(mode_value):
+    if pd.isna(mode_value):
+        return 'Unknown'
+    elif 0 <= mode_value <= 15:
+        return 'A'    
+    elif 16 <= mode_value <= 60:
+        return 'B'    
+    elif mode_value > 60:
+        return 'C'    
+    else:
+        return 'Unknown'
+
+
+def calculate_percentage_diff_and_condition(df):
+    df['Percentage Difference'] = (
+        df['Venta dia anterior'] / df['Last 4 Weeks Avg'] - 1
+    ).replace([float('inf'), -float('inf')], float('nan'))  # Replace invalid values
+
+    thresholds = {'A': 0.25, 'B': 0.40, 'C': 0.50, 'Unknown': 0.50}
+    df['Threshold'] = df['Rotation Type'].map(thresholds)
+    df['Condition'] = df['Percentage Difference'] > df['Threshold'].fillna(float('inf')) # Calculate the condition based on percentage of variation of sales and thresholds
+
+    return df
+
+def calculate_remaining_days_and_broke(df):
+    df['Remaining Days'] = df['Stock dia actual'] / df['Venta dia anterior'].replace(0, 1)
+
+    thresholds = {
+        'A': 4,
+        'B': 2,
+        'C': 1,
+        'Unknown': 1,
+    } # Days of availables sale
+    
+    df['Threshold'] = df['Rotation Type'].map(thresholds).fillna(float('inf'))
+    df['Remaining Broke'] = df['Remaining Days'] < df['Threshold'] #Compare if the available days of sales is lower than the day thrseholds
+    df.drop(columns=['Threshold'], inplace=True)
+
+    return df
+
+
+def checkSales(df_test):    
+    df_test['cumulative_sales'] = (
+        df_test.groupby(['storeId', 'productId'])['Venta dia anterior']
+        .cumsum()
+        .shift(1, fill_value=0)
+    ) # Check if has sale parting of the previous date
+    
+    df_test['has sales'] = df_test['cumulative_sales'] > 0 # Check if the accumulate is greather than zero
+    
+    df_test['group_index'] = (
+        df_test.groupby(['storeId', 'productId'])
+        .cumcount()
+    )
+    df_test['enough information'] = df_test['group_index'] >= 4 #Check if has more than 4 records of information
+    df_test.drop(columns=['cumulative_sales', 'group_index'], inplace=True)
+    return df_test
+
+def assign_category(row):
+    if row['Stock dia actual'] < 0:
+        return "inventario negativo"
+    elif not row['has sales'] and row['Venta dia anterior'] == 0:
+        return 'producto nuevo sin movimiento'
+    elif row['Condition'] and row['Remaining Broke'] and row['Remaining Days'] > 0:
+        return "Posible venta atípica"
+    elif ((row['Condition'] and row['Remaining Broke']) and row['Remaining Days'] <= 0) or (row['Remaining Broke'] and row['Percentage Difference'] <= 0) :
+        return "Posible quiebre de stock por pedido insuficiente"
+    elif row['% global tiendas'] <= 0.4:
+        return 'Posible producto eliminando de catalogo'
+    elif not row['Condition'] and row['Remaining Broke'] and row['Remaining Days'] > 0:
+        return 'Pedido insuficiente'
+    elif row['Stock dia actual'] == 0:
+        if row['Pedido en transito'] > 0:
+            return 'Pedido pendiente de entregar'        
+        elif row['Pedido procesandose'] > 0:
+            return 'Pedido realizado tardiamente'
+        else:
+            return 'Producto con quiebre de stock'
+    elif not row['Remaining Broke']:
+        return "Producto sano"
+    else:
+        return None  # For cases that dont apply a correct assign
+    
+def readResults():
+    fields = ['Fecha', 'productId', 'storeId', 'País', 'Venta dia anterior',
+       'Stock dia actual', 'Last 4 Weeks Avg', 'Last Sale Date',
+       'Days Since Last Sale', 'Total Presence', 'total tiendas',
+        '% global tiendas', 'Percentage Difference',
+       'Condition', 'Remaining Days', 'Remaining Broke', 'has sales',
+       'enough information', 'category']
+
+    client = MongoClient("mongodb://localhost:27017/") 
+    db = client["retail_classificator"]
+    collection = db["data"]
+
+    data = list(collection.find())
+    if len(data) == 0:
+        return pd.DataFrame([])
+
+    df_from_db = pd.DataFrame(data)
+
+    datetime_columns = ["Fecha", "Last Sale Date"] 
+    for col in datetime_columns:
+        if col in df_from_db.columns:
+            df_from_db[col] = pd.to_datetime(df_from_db[col], errors="coerce")  
+        
+    
+    print(f"Total of: {df_from_db[fields].shape}")
+    return df_from_db[fields]
+
+def insertResults(df_test):
+    for col in df_test.select_dtypes(include=["datetime64[ns]"]).columns:
+        print(col)
+        df_test[col] = df_test[col].apply(lambda x: None if pd.isna(x) else x.isoformat() if isinstance(x, pd.Timestamp) else x)
+
+    data_dict = df_test.to_dict(orient="records")
+    
+    client = MongoClient("mongodb://localhost:27017/")
+    db = client["retail_classificator"]
+    collection = db["results"]
+
+    if data_dict:  # Only insert if there is data
+        collection.insert_many(data_dict)
+        print("Data successfully inserted into MongoDB!")
+    else:
+        print("No data to insert.")

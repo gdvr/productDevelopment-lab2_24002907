@@ -4,7 +4,7 @@ import yaml
 import os
 import shutil
 
-from utils.common import categorizeColumns,  detectInvalidValues, handlingEmptyValues, readEnv
+from utils.common import categorizeColumns,  detectInvalidValues, handlingEmptyValues, readEnv, readFolder
 
 def preprocess():
     dataset,target, _,_,_,_,_,_= readEnv()
@@ -22,8 +22,17 @@ def preprocess():
         print(f"Cleared existing contents in '{folder}' folder.")
     os.makedirs(folder, exist_ok=True)
     
+    rootPath = os.getcwd()
+    models_list = readFolder("datasets","csv")
 
-    df = pd.read_parquet(dataset, engine='pyarrow')      
+    df = pd.DataFrame([])
+    for model_name in models_list:   
+        model_fullPath = os.path.join(os.getcwd(),model_name)
+        df_aux = pd.read_csv(model_fullPath)      
+        df_aux = df_aux[df_aux["category"].notnull()]
+        df = pd.concat([df,df_aux])
+
+    os.chdir(rootPath)   # Restore the base root path   
 
     df_features = df.drop(columns=[target], errors='ignore')
 

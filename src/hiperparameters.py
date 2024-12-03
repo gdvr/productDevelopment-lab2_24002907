@@ -5,6 +5,7 @@ import optuna
 import yaml
 import os
 
+from sklearn.impute import SimpleImputer
 from utils.common import  chooseBestHiperparameters, modelToAppyOptimization,  objective, readEnv
 
 def searchHiperparameters(target):   
@@ -33,15 +34,31 @@ def searchHiperparameters(target):
     params["optuna"] = {}
     params["optimization"] = {}
 
+    target_mapping = {
+        'Pedido insuficiente': 0,
+        'Posible producto eliminando de catalogo': 1,
+        'Posible quiebre de stock por pedido insuficiente': 2,
+        'Posible venta atípica': 3,
+        'Producto sano': 4,
+        'inventario negativo': 5,
+        'producto nuevo sin movimiento': 6
+    }
+
+    #y_numeric = y.map(target_mapping)
+    # Replace NaN values with the mean (or another strategy)
+    imputer = SimpleImputer(strategy='mean')  # Options: 'mean', 'median', 'most_frequent', 'constant'
+    X_train_imputed = imputer.fit_transform(X_train)
+    X_val_imputed = imputer.transform(X_val)
+
     if model in modelsToApplyOptiomization:
         print(f"start optuna study for: {model}")
         study  = optuna.create_study(direction="maximize")
-        study.optimize(lambda trial: objective(trial,X_train, y_train, X_val, y_val, random_state,model), n_trials=int(trials), n_jobs=-1)
+        study.optimize(lambda trial: objective(trial,X_train_imputed, y_train.map(target_mapping), X_val_imputed, y_val.map(target_mapping), random_state,model), n_trials=int(trials), n_jobs=-1)
         params["optuna"][model] = study.best_params
         print(f"Best {model} parameters:", study.best_params)
 
-        models_best_params = chooseBestHiperparameters(X_train,y_train,params['train']['CV'],random_state,model)
-        params["optimization"] = models_best_params  
+        #models_best_params = chooseBestHiperparameters(X_train_imputed,y_train.map(target_mapping),params['train']['CV'],random_state,model)
+        #params["optimization"] = models_best_params  
 
     with open("params.yaml", "w") as f:
         yaml.dump(params, f, default_flow_style=False, sort_keys=False)

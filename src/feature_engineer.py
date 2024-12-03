@@ -17,10 +17,22 @@ def preprocess(target):
 
     features = X.columns
 
+    target_mapping = {
+        'Pedido insuficiente': 0,
+        'Posible producto eliminando de catalogo': 1,
+        'Posible quiebre de stock por pedido insuficiente': 2,
+        'Posible venta atípica': 3,
+        'Producto sano': 4,
+        'inventario negativo': 5,
+        'producto nuevo sin movimiento': 6
+    }
+
+    y_numeric = y.map(target_mapping)
+
     pipeline = Pipeline(steps=[
         ('model', RandomForestRegressor(n_estimators=100, random_state=params["train"]["RANDOM_STATE"]))
     ])
-    pipeline.fit(X, y)
+    pipeline.fit(X, y_numeric)
 
     # Get feature importances
     importances = pipeline.named_steps['model'].feature_importances_

@@ -9,3 +9,4 @@ __pycache__/
 /evaluation_metrics.json
 /output/*.csv
 /data/*.csv
+*.xlsx

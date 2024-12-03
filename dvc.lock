@@ -16,8 +16,8 @@ stages:
       size: 72970
     - path: params.yaml
       hash: md5
-      md5: 207b5d46999adf96afed7838f3c2145b
-      size: 563
+      md5: 4d2ccb2ed368d2cb8d2e887d994c9e3c
+      size: 775
     outs:
     - path: data/transformed_data.csv
       hash: md5
@@ -32,8 +32,8 @@ stages:
       size: 75256
     - path: params.yaml
       hash: md5
-      md5: 207b5d46999adf96afed7838f3c2145b
-      size: 563
+      md5: 4d2ccb2ed368d2cb8d2e887d994c9e3c
+      size: 775
     outs:
     - path: data/top_features.csv
       hash: md5
